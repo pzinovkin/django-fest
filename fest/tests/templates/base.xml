@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<fest:template xmlns:fest="http://fest.mail.ru" context_name="json">
+  <h1>Hello,<fest:space/><fest:value output="text">json.name</fest:value></h1>
+
+  <!-- По умолчанию все значения fest:value экранируются -->
+  <!--
+    Необходимо использовать fest:space или
+    fest:text для явного указания строк с пробелами
+  -->
+</fest:template>
