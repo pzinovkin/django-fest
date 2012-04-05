@@ -18,6 +18,55 @@ def fest_error(message):
     raise TemplateSyntaxError(message)
 
 
+class JSLocker(PyV8.JSLocker):
+
+    def __enter__(self):
+        self.enter()
+
+        if JSContext.entered:
+            self.leave()
+            raise RuntimeError('Lock should be acquired before enter'
+                               ' the context')
+
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        if JSContext.entered:
+            self.leave()
+            raise RuntimeError('Lock should be released after leave'
+                               ' the context')
+
+        self.leave()
+
+    def __nonzero__(self):
+        return self.entered()
+
+
+class JSContext(PyV8.JSContext):
+
+    def __init__(self, obj=None, extensions=None, ctxt=None):
+        if JSLocker.active:
+            self.lock = JSLocker()
+            self.lock.enter()
+
+        if ctxt:
+            PyV8.JSContext.__init__(self, ctxt)
+        else:
+            PyV8.JSContext.__init__(self, obj, extensions or [])
+
+    def __enter__(self):
+        self.enter()
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.leave()
+        if hasattr(JSLocker, 'lock'):
+            self.lock.leave()
+            self.lock = None
+
+        del self
+
+
 class TemplateGlobal(PyV8.JSClass):
 
     def __init__(self, template):
@@ -63,7 +112,7 @@ class Template(object):
     @property
     def context(self):
         if not hasattr(self, '_context'):
-            self._context = PyV8.JSContext(TemplateGlobal(self))
+            self._context = JSContext(TemplateGlobal(self))
         return self._context
 
     def compile(self):
@@ -74,16 +123,17 @@ class Template(object):
 
     def render(self, context):
 
-        with self.context as env:
-            if not settings.DEBUG:
-                template = self.template_string
-            else:
-                template = self.compile()
+        with JSLocker():
+            with self.context as env:
+                if not settings.DEBUG:
+                    template = self.template_string
+                else:
+                    template = self.compile()
 
-            # maybe i'm just stupid
-            template = """(function(json_string, fest_error) {
-                    return %s(JSON.parse(json_string), fest_error);
-                })""" % template
+                # maybe i'm just stupid
+                template = """(function(json_string, fest_error) {
+                        return %s(JSON.parse(json_string), fest_error);
+                    })""" % template
 
-            func = env.eval(template)
-            return func(json.dumps(list(context).pop()), fest_error)
+                func = env.eval(template)
+                return func(json.dumps(list(context).pop()), fest_error)

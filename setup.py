@@ -11,6 +11,6 @@ setup(
         'PyV8==1.0',
     ],
     dependency_links=[
-        'svn+http://pyv8.googlecode.com/svn/trunk/@429#egg=PyV8-1.0',
+        'svn+http://pyv8.googlecode.com/svn/trunk/@433#egg=PyV8-1.0',
     ]
 )

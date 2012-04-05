@@ -4,7 +4,7 @@ Installation
 
 ::
     
-    export V8_SVN_URL="http://v8.googlecode.com/svn/trunk/@10412"
+    export V8_SVN_URL="http://v8.googlecode.com/svn/trunk/@10875"
     pip install -r requirements.txt
 
 
